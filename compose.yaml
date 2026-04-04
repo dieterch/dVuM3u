@@ -1,0 +1,15 @@
+services:
+  dvum3u:
+    build: .
+    container_name: dvum3u
+    restart: unless-stopped
+    ports:
+      - "3005:3005"
+    environment:
+      PORT: "3005"
+      TZ: "Europe/Vienna"
+      VU_IP: "192.168.15.15"
+      BOUQUET_NAME: "HD Kabel (TV)"
+      BOUQUET_REF: '1:7:1:0:0:0:0:0:0:0:FROM BOUQUET "userbouquet.favourites.tv" ORDER BY bouquet'
+    volumes:
+      - ./logos:/app/logos

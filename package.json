@@ -1,0 +1,23 @@
+{
+  "name": "dvum3u",
+  "version": "1.0.0",
+  "description": "VU+ bouquet to M3U and XMLTV adapter for Dispatcharr",
+  "type": "module",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "keywords": [
+    "vuplus",
+    "openwebif",
+    "m3u",
+    "xmltv",
+    "dispatcharr"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^5.2.1",
+    "fast-xml-parser": "^5.5.10"
+  }
+}
