@@ -2,7 +2,7 @@ import express from 'express';
 
 import { TTLCache } from './lib/cache.js';
 import { config } from './lib/config.js';
-import { createLogosMiddleware, logoExists } from './lib/logos.js';
+import { createLogosMiddleware, resolveLogoName } from './lib/logos.js';
 import { OpenWebifClient, OpenWebifError } from './lib/openwebif.js';
 import {
   buildBaseUrl,
@@ -51,12 +51,12 @@ async function getChannelRecords(refresh) {
 
   for (const service of services) {
     const channelId = serviceRefToChannelId(service.serviceRef);
-    const hasLogo = await logoExists(config.logoDir, channelId);
+    const logoName = await resolveLogoName(config.logoDir, channelId);
     channels.push({
       name: service.name,
       serviceRef: service.serviceRef,
       channelId,
-      hasLogo,
+      logoName,
     });
   }
 
@@ -70,8 +70,9 @@ function buildChannelPayload(channels, baseUrl) {
     name: channel.name,
     serviceRef: channel.serviceRef,
     channelId: channel.channelId,
+    logoName: channel.logoName ? `${channel.logoName}.png` : null,
     streamUrl: buildStreamUrl(config.vuIp, channel.serviceRef),
-    logoUrl: channel.hasLogo ? buildLogoUrl(baseUrl, channel.channelId) : null,
+    logoUrl: channel.logoName ? buildLogoUrl(baseUrl, channel.logoName) : null,
   }));
 }
 
