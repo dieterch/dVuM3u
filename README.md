@@ -7,6 +7,7 @@ It also provides a minimal HDHomeRun-compatible interface so Plex can use the se
 ## Start
 
 ```bash
+cp .env.example .env
 docker compose up -d
 ```
 
@@ -140,7 +141,7 @@ The service serves logos at `/logos/<channelId>.png` and includes those URLs in 
 - Streams point directly at the VU+ receiver on port `8001`.
 - No authentication or database is used.
 - The movie finder uses German Wikipedia as an optional external metadata source.
-- `PUBLIC_BASE_URL` can be set if the service runs behind a reverse proxy and should emit a fixed public logo/XMLTV base URL.
+- `PUBLIC_BASE_URL` should be set in `.env` to the URL Plex or other clients should use, so HDHomeRun discovery and lineup URLs do not point to `localhost`.
 
 ## Configuration
 

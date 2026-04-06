@@ -3,20 +3,34 @@ services:
     build: .
     container_name: dvum3u
     restart: unless-stopped
+    env_file:
+      - .env
     ports:
-      - "3005:3005"
+      - "${PORT:-3005}:${PORT:-3005}"
     environment:
-      PORT: "3005"
-      TZ: "Europe/Vienna"
-      VU_IP: "192.168.15.15"
-      PUBLIC_BASE_URL: "http://localhost:3005"
-      BOUQUET_NAME: "HD Kabel (TV)"
-      BOUQUET_REF: '1:7:1:0:0:0:0:0:0:0:FROM BOUQUET "userbouquet.favourites.tv" ORDER BY bouquet'
-      HDHR_DEVICE_ID: "12345678"
-      DATA_DIR: "/data"
-      MOVIE_SETTINGS_FILE: "/data/movie-settings.json"
-      MOVIE_LOOKAHEAD_HOURS: "48"
-      MOVIE_MIN_DURATION_MINUTES: "80"
+      PORT: "${PORT:-3005}"
+      TZ: "${TZ:-Europe/Vienna}"
+      VU_IP: "${VU_IP:-192.168.15.15}"
+      PUBLIC_BASE_URL: "${PUBLIC_BASE_URL:-}"
+      BOUQUET_NAME: "${BOUQUET_NAME:-HD Kabel (TV)}"
+      BOUQUET_REF: '${BOUQUET_REF:-1:7:1:0:0:0:0:0:0:0:FROM BOUQUET "userbouquet.favourites.tv" ORDER BY bouquet}'
+      HDHR_FRIENDLY_NAME: "${HDHR_FRIENDLY_NAME:-dVuM3u HDHomeRun}"
+      HDHR_MANUFACTURER: "${HDHR_MANUFACTURER:-Custom}"
+      HDHR_MODEL_NUMBER: "${HDHR_MODEL_NUMBER:-HDTC-2US}"
+      HDHR_FIRMWARE_NAME: "${HDHR_FIRMWARE_NAME:-hdhomerun_atsc}"
+      HDHR_FIRMWARE_VERSION: "${HDHR_FIRMWARE_VERSION:-20260406}"
+      HDHR_DEVICE_ID: "${HDHR_DEVICE_ID:-12345678}"
+      HDHR_DEVICE_AUTH: "${HDHR_DEVICE_AUTH:-dVuM3u}"
+      DATA_DIR: "${DATA_DIR:-/data}"
+      LOGO_DIR: "${LOGO_DIR:-/app/logos}"
+      MOVIE_SETTINGS_FILE: "${MOVIE_SETTINGS_FILE:-/data/movie-settings.json}"
+      MOVIE_LOOKAHEAD_HOURS: "${MOVIE_LOOKAHEAD_HOURS:-48}"
+      MOVIE_MIN_DURATION_MINUTES: "${MOVIE_MIN_DURATION_MINUTES:-80}"
+      REQUEST_TIMEOUT_MS: "${REQUEST_TIMEOUT_MS:-10000}"
+      WIKIPEDIA_CACHE_TTL_MS: "${WIKIPEDIA_CACHE_TTL_MS:-86400000}"
+      CHANNELS_CACHE_TTL_MS: "${CHANNELS_CACHE_TTL_MS:-60000}"
+      M3U_CACHE_TTL_MS: "${M3U_CACHE_TTL_MS:-60000}"
+      XMLTV_CACHE_TTL_MS: "${XMLTV_CACHE_TTL_MS:-300000}"
     volumes:
       - ./logos:/app/logos
       - ./data:/data
