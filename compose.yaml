@@ -11,5 +11,10 @@ services:
       VU_IP: "192.168.15.15"
       BOUQUET_NAME: "HD Kabel (TV)"
       BOUQUET_REF: '1:7:1:0:0:0:0:0:0:0:FROM BOUQUET "userbouquet.favourites.tv" ORDER BY bouquet'
+      DATA_DIR: "/data"
+      MOVIE_SETTINGS_FILE: "/data/movie-settings.json"
+      MOVIE_LOOKAHEAD_HOURS: "48"
+      MOVIE_MIN_DURATION_MINUTES: "80"
     volumes:
       - ./logos:/app/logos
+      - ./data:/data

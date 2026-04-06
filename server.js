@@ -2,7 +2,10 @@ import express from 'express';
 
 import { TTLCache } from './lib/cache.js';
 import { config } from './lib/config.js';
+import { renderMoviesPage } from './lib/html.js';
 import { createLogosMiddleware, resolveLogoName } from './lib/logos.js';
+import { findMovieCandidates } from './lib/movie-finder.js';
+import { MovieSettingsStore, normalizeMovieSettings } from './lib/movie-settings.js';
 import { OpenWebifClient, OpenWebifError } from './lib/openwebif.js';
 import {
   buildBaseUrl,
@@ -11,13 +14,17 @@ import {
   buildStreamUrl,
   serviceRefToChannelId,
 } from './lib/transform.js';
+import { WikipediaClient } from './lib/wikipedia.js';
 import { buildXmltv } from './lib/xmltv.js';
 
 const app = express();
 const cache = new TTLCache();
 const openwebif = new OpenWebifClient(config);
+const movieSettings = new MovieSettingsStore(config);
+const wikipediaClient = new WikipediaClient(config);
 
 app.disable('x-powered-by');
+app.use(express.urlencoded({ extended: false }));
 app.use('/logos', createLogosMiddleware(config.logoDir));
 
 function logInfo(message, meta = {}) {
@@ -76,16 +83,21 @@ function buildChannelPayload(channels, baseUrl) {
   }));
 }
 
-async function getChannels(req) {
+async function getAvailableChannels(req) {
   const refresh = wantsRefresh(req);
   const baseUrl = buildBaseUrl(req, config.publicBaseUrl);
   const channels = await getChannelRecords(refresh);
+  return buildChannelPayload(channels, baseUrl);
+}
+
+async function getChannels(req) {
+  const channels = await getAvailableChannels(req);
 
   return {
     bouquetName: config.bouquetName,
     sourceIp: config.vuIp,
     count: channels.length,
-    channels: buildChannelPayload(channels, baseUrl),
+    channels,
   };
 }
 
@@ -179,6 +191,20 @@ async function getXmltv(req) {
   return xml;
 }
 
+async function getMoviePageData(req, incomingSettings = null) {
+  const channels = await getAvailableChannels(req);
+  const channelIds = channels.map((channel) => channel.channelId);
+  const persistedSettings = await movieSettings.load(channelIds);
+  const settings = incomingSettings
+    ? normalizeMovieSettings(incomingSettings, movieSettings.defaults, channelIds)
+    : persistedSettings;
+
+  return {
+    channels,
+    settings,
+  };
+}
+
 function escapeAttribute(value) {
   return String(value)
     .replaceAll('&', '&amp;')
@@ -234,14 +260,100 @@ app.get('/xmltv', async (req, res) => {
   }
 });
 
+app.get('/movies', async (req, res) => {
+  logInfo('Request /movies');
+
+  try {
+    const { channels, settings } = await getMoviePageData(req);
+    res.type('html').send(
+      renderMoviesPage({
+        channels,
+        settings,
+        timeZone: config.timeZone,
+      }),
+    );
+  } catch (error) {
+    logError('Failed /movies request', { error: error.message });
+    sendUpstreamError(res, error);
+  }
+});
+
+app.post('/movies', async (req, res) => {
+  logInfo('Request POST /movies');
+
+  try {
+    const { channels } = await getMoviePageData(req);
+    const channelIds = channels.map((channel) => channel.channelId);
+    const settings = await movieSettings.save(
+      {
+        selectedChannels: req.body.selectedChannels,
+        minimumDurationMinutes: req.body.minimumDurationMinutes,
+        lookaheadHours: req.body.lookaheadHours,
+      },
+      channelIds,
+    );
+    const results = await findMovieCandidates({
+      channels,
+      settings,
+      openwebif,
+      wikipediaClient,
+    });
+
+    res.type('html').send(
+      renderMoviesPage({
+        channels,
+        settings,
+        results,
+        timeZone: config.timeZone,
+      }),
+    );
+  } catch (error) {
+    logError('Failed POST /movies request', { error: error.message });
+    sendUpstreamError(res, error);
+  }
+});
+
+app.get('/movies.json', async (req, res) => {
+  logInfo('Request /movies.json');
+
+  try {
+    const { channels, settings } = await getMoviePageData(req);
+    const results = await findMovieCandidates({
+      channels,
+      settings,
+      openwebif,
+      wikipediaClient,
+    });
+
+    res.json({
+      settings,
+      stats: results.stats,
+      channels: results.selectedChannels.map((channel) => ({
+        channelId: channel.channelId,
+        name: channel.name,
+        serviceRef: channel.serviceRef,
+      })),
+      movies: results.candidates,
+    });
+  } catch (error) {
+    logError('Failed /movies.json request', { error: error.message });
+    sendUpstreamError(res, error);
+  }
+});
+
 app.get('/logos/:file', (_req, res) => {
   res.status(404).json({ error: 'Logo not found' });
 });
 
-app.listen(config.port, () => {
-  logInfo('Service started', {
-    port: config.port,
-    vuIp: config.vuIp,
-    bouquetName: config.bouquetName,
+movieSettings
+  .ensureDataDir()
+  .catch((error) => logError('Failed to initialize data directory', { error: error.message }))
+  .finally(() => {
+    app.listen(config.port, () => {
+      logInfo('Service started', {
+        port: config.port,
+        vuIp: config.vuIp,
+        bouquetName: config.bouquetName,
+      });
+    });
   });
-});

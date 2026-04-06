@@ -4,3 +4,5 @@ npm-debug.log*
 .env.*
 logos/*.png
 !logos/.gitkeep
+data/*
+!data/.gitkeep

@@ -7,7 +7,7 @@ RUN npm ci --omit=dev
 
 COPY . .
 
-RUN mkdir -p /app/logos && chown -R node:node /app
+RUN mkdir -p /app/logos /data && chown -R node:node /app /data
 
 ENV NODE_ENV=production
 ENV PORT=3005
