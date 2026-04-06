@@ -1,4 +1,6 @@
 import express from 'express';
+import { Readable } from 'node:stream';
+import { pipeline } from 'node:stream/promises';
 
 import { TTLCache } from './lib/cache.js';
 import { config } from './lib/config.js';
@@ -323,7 +325,7 @@ app.get('/device.xml', (req, res) => {
   }
 });
 
-app.get('/stream/:encodedRef', (req, res) => {
+app.get('/stream/:encodedRef', async (req, res) => {
   logInfo('Request /stream/:encodedRef');
 
   try {
@@ -333,8 +335,32 @@ app.get('/stream/:encodedRef', (req, res) => {
       return;
     }
 
-    res.redirect(307, buildStreamUrl(config.vuIp, serviceRef));
+    const controller = new AbortController();
+    req.on('close', () => controller.abort());
+
+    const upstream = await fetch(buildStreamUrl(config.vuIp, serviceRef), {
+      signal: controller.signal,
+      headers: {
+        accept: '*/*',
+      },
+    });
+
+    if (!upstream.ok || !upstream.body) {
+      throw new OpenWebifError(`Upstream stream request failed with status ${upstream.status}`);
+    }
+
+    res.status(200);
+    res.setHeader('content-type', upstream.headers.get('content-type') || 'video/mp2t');
+    res.setHeader('cache-control', 'no-store');
+    res.setHeader('connection', 'keep-alive');
+
+    await pipeline(Readable.fromWeb(upstream.body), res);
   } catch (error) {
+    if (error.name === 'AbortError') {
+      logInfo('Client closed /stream connection');
+      return;
+    }
+
     logError('Failed /stream/:encodedRef request', { error: error.message });
     sendUpstreamError(res, error);
   }

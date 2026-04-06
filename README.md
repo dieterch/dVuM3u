@@ -61,13 +61,12 @@ For Plex, point discovery or manual setup at the dVuM3u base URL, for example:
 http://host:3005/discover.json
 ```
 
-`/lineup.json` exposes stable `GuideNumber` values in bouquet order, and `/stream/:encodedRef` performs a redirect to the underlying VU+ stream on port `8001`.
+`/lineup.json` exposes stable `GuideNumber` values in bouquet order, and `/stream/:encodedRef` proxies the underlying VU+ MPEG-TS stream from port `8001`.
 
 This is intentionally a minimal HDHomeRun emulation:
 
 - no SSDP broadcast support
 - no real tuner reservation or multiplexing
-- no proxy stream relay, only redirect responses
 
 ## Filmfinder
 
