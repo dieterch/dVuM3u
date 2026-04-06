@@ -14,6 +14,4 @@ ENV PORT=3005
 
 EXPOSE 3005
 
-USER node
-
 CMD ["node", "server.js"]

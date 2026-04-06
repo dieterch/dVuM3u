@@ -10,7 +10,7 @@ docker compose up -d
 
 The service listens on port `3005` by default.
 
-Persistent movie finder data is stored in the local `./data` directory and mounted into the container as `/data`.
+Persistent movie finder data is stored in the local `./data` directory by default. In Docker Compose, that directory is mounted into the container as `/data`.
 
 ## Endpoints
 
@@ -117,8 +117,8 @@ Useful environment variables:
 - `BOUQUET_NAME` sets the displayed bouquet label
 - `BOUQUET_REF` selects the OpenWebif bouquet reference
 - `LOGO_DIR` defaults to `/app/logos`
-- `DATA_DIR` defaults to `/data`
-- `MOVIE_SETTINGS_FILE` defaults to `/data/movie-settings.json`
+- `DATA_DIR` defaults to `./data` for local runs and can be set to `/data` in containers
+- `MOVIE_SETTINGS_FILE` defaults to `<DATA_DIR>/movie-settings.json`
 - `MOVIE_LOOKAHEAD_HOURS` defaults to `48`
 - `MOVIE_MIN_DURATION_MINUTES` defaults to `80`
 - `WIKIPEDIA_CACHE_TTL_MS` defaults to `86400000`
