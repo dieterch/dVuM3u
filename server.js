@@ -2,6 +2,12 @@ import express from 'express';
 
 import { TTLCache } from './lib/cache.js';
 import { config } from './lib/config.js';
+import {
+  buildDeviceXml,
+  buildDiscoverPayload,
+  buildLineupPayload,
+  buildLineupStatusPayload,
+} from './lib/hdhr.js';
 import { renderMoviesPage } from './lib/html.js';
 import { createLogosMiddleware, resolveLogoName } from './lib/logos.js';
 import { findMovieCandidates } from './lib/movie-finder.js';
@@ -205,6 +211,16 @@ async function getMoviePageData(req, incomingSettings = null) {
   };
 }
 
+async function getHdhrData(req) {
+  const baseUrl = buildBaseUrl(req, config.publicBaseUrl);
+  const channels = await getAvailableChannels(req);
+
+  return {
+    baseUrl,
+    channels,
+  };
+}
+
 function escapeAttribute(value) {
   return String(value)
     .replaceAll('&', '&amp;')
@@ -256,6 +272,70 @@ app.get('/xmltv', async (req, res) => {
     res.type('application/xml').send(payload);
   } catch (error) {
     logError('Failed /xmltv request', { error: error.message });
+    sendUpstreamError(res, error);
+  }
+});
+
+app.get('/discover.json', async (req, res) => {
+  logInfo('Request /discover.json');
+
+  try {
+    const { baseUrl } = await getHdhrData(req);
+    res.json(buildDiscoverPayload({ baseUrl, config }));
+  } catch (error) {
+    logError('Failed /discover.json request', { error: error.message });
+    sendUpstreamError(res, error);
+  }
+});
+
+app.get('/lineup_status.json', async (req, res) => {
+  logInfo('Request /lineup_status.json');
+
+  try {
+    const { channels } = await getHdhrData(req);
+    res.json(buildLineupStatusPayload(channels.length));
+  } catch (error) {
+    logError('Failed /lineup_status.json request', { error: error.message });
+    sendUpstreamError(res, error);
+  }
+});
+
+app.get('/lineup.json', async (req, res) => {
+  logInfo('Request /lineup.json');
+
+  try {
+    const { baseUrl, channels } = await getHdhrData(req);
+    res.json(buildLineupPayload(channels, baseUrl));
+  } catch (error) {
+    logError('Failed /lineup.json request', { error: error.message });
+    sendUpstreamError(res, error);
+  }
+});
+
+app.get('/device.xml', (req, res) => {
+  logInfo('Request /device.xml');
+
+  try {
+    res.type('application/xml').send(buildDeviceXml({ config }));
+  } catch (error) {
+    logError('Failed /device.xml request', { error: error.message });
+    sendUpstreamError(res, error);
+  }
+});
+
+app.get('/stream/:encodedRef', (req, res) => {
+  logInfo('Request /stream/:encodedRef');
+
+  try {
+    const serviceRef = decodeURIComponent(req.params.encodedRef || '').trim();
+    if (!serviceRef) {
+      res.status(400).json({ error: 'Missing service reference' });
+      return;
+    }
+
+    res.redirect(307, buildStreamUrl(config.vuIp, serviceRef));
+  } catch (error) {
+    logError('Failed /stream/:encodedRef request', { error: error.message });
     sendUpstreamError(res, error);
   }
 });

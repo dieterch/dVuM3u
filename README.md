@@ -2,6 +2,8 @@
 
 `dVuM3u` is a small Express service that reads a VU+ OpenWebif bouquet and exposes Dispatcharr-compatible M3U and XMLTV feeds. It also includes a server-rendered `/movies` page that scans upcoming EPG entries for likely feature films.
 
+It also provides a minimal HDHomeRun-compatible interface so Plex can use the service directly as a tuner source.
+
 ## Start
 
 ```bash
@@ -18,6 +20,11 @@ Persistent movie finder data is stored in the local `./data` directory by defaul
 - `GET /channels`
 - `GET /m3u`
 - `GET /xmltv`
+- `GET /discover.json`
+- `GET /lineup_status.json`
+- `GET /lineup.json`
+- `GET /device.xml`
+- `GET /stream/:encodedRef`
 - `GET /movies`
 - `POST /movies`
 - `GET /movies.json`
@@ -33,6 +40,34 @@ Use these URLs inside Dispatcharr:
 - EPG: `http://host:3005/xmltv`
 
 The generated M3U uses stable `tvg-id` values that match the XMLTV `<channel id>` values, which keeps Dispatcharr channel-to-EPG mapping consistent.
+
+## Plex / HDHomeRun
+
+`dVuM3u` includes a minimal HDHomeRun emulation layer intended for Plex tuner discovery without SSDP or full tuner state handling.
+
+Relevant endpoints:
+
+- `/discover.json`
+- `/lineup_status.json`
+- `/lineup.json`
+- `/device.xml`
+- `/stream/:encodedRef`
+
+The lineup is built from the same bouquet-derived channel list used for `/channels`, `/m3u`, and `/xmltv`, so there is no separate channel configuration.
+
+For Plex, point discovery or manual setup at the dVuM3u base URL, for example:
+
+```text
+http://host:3005/discover.json
+```
+
+`/lineup.json` exposes stable `GuideNumber` values in bouquet order, and `/stream/:encodedRef` performs a redirect to the underlying VU+ stream on port `8001`.
+
+This is intentionally a minimal HDHomeRun emulation:
+
+- no SSDP broadcast support
+- no real tuner reservation or multiplexing
+- no proxy stream relay, only redirect responses
 
 ## Filmfinder
 
@@ -123,3 +158,5 @@ Useful environment variables:
 - `MOVIE_MIN_DURATION_MINUTES` defaults to `80`
 - `WIKIPEDIA_CACHE_TTL_MS` defaults to `86400000`
 - `PUBLIC_BASE_URL` forces a fixed public base URL for generated links
+- `HDHR_FRIENDLY_NAME` defaults to `dVuM3u HDHomeRun`
+- `HDHR_DEVICE_ID` defaults to `12345678`
